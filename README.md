@@ -8,7 +8,7 @@
 
 | 目錄 | 說明 |
 |---|---|
-| `translations/` | 軟體繁體中文翻譯檔 |
+| `software/` | 開源軟體相關翻譯、部署工具、設定與範例 |
 | `powershell/` | PowerShell 程式 |
 | `bash/` | Bash / Shell 程式 |
 | `python/` | Python 程式 |
@@ -16,7 +16,20 @@
 | `pve/` | Proxmox VE 相關工具 |
 | `examples/` | 教學與設定範例 |
 
-## 版本原則
+## 軟體目錄原則
+
+軟體相關內容統一放在 `software/`，再依軟體名稱與版本分層保存。
+
+例如：
+
+```text
+software/
+└── sftpgo/
+    └── 2.7.5/
+        ├── README.md
+        ├── deploy-sftpgo-zhTW.ps1
+        └── translation.json
+```
 
 不同版本的軟體或工具分開保存，避免新版本檔案覆蓋舊版本內容。
 
