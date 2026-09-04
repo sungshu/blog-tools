@@ -34,28 +34,15 @@ jobs:
           if pos < 0:
               raise SystemExit('找不到 2.7.4 翻譯區段')
 
-          tail = html.unescape(page[pos:])
-          start = tail.find('{ "title"')
-          if start < 0:
-              start = tail.find('{\n"title"')
+          # Pixnet may render the JSON with <br>/<code> tags, so strip HTML first.
+          text = html.unescape(re.sub(r'<[^>]+>', '', page[pos:])).strip()
+          start = text.find('{')
           if start < 0:
               raise SystemExit('找不到 2.7.4 translation.json 起點')
 
-          raw = tail[start:]
-          end_markers = ['</code>', '</pre>', '</textarea>']
-          ends = [raw.find(x) for x in end_markers if raw.find(x) >= 0]
-          if ends:
-              raw = raw[:min(ends)]
-
-          # Remove HTML tags/entities while preserving JSON text.
-          raw = re.sub(r'<[^>]+>', '', raw)
-          raw = html.unescape(raw).strip()
-          end = raw.rfind('}')
-          if end < 0:
-              raise SystemExit('找不到 JSON 結尾')
-          raw = raw[:end + 1]
-
-          data = json.loads(raw)
+          raw = text[start:]
+          decoder = json.JSONDecoder()
+          data, consumed = decoder.raw_decode(raw)
           out = json.dumps(data, ensure_ascii=False, indent=2) + '\n'
 
           target = Path('software/sftpgo/2.7.4')
@@ -68,7 +55,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add software/sftpgo/2.7.4/translation.json software/sftpgo/2.7.4/README.md .github/workflows/extract-sftpgo-274.yml
+          git add software/sftpgo/2.7.4/translation.json software/sftpgo/2.7.4/README.md
           git rm .github/workflows/extract-sftpgo-274.yml
           git commit -m 'Add SFTPGo 2.7.4 Traditional Chinese translation'
           git push
