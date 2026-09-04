@@ -1,0 +1,74 @@
+name: Import SFTPGo 2.7.4 Traditional Chinese translation
+
+on:
+  push:
+    paths:
+      - '.github/workflows/extract-sftpgo-274.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  import-translation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract 2.7.4 translation from article
+        shell: python
+        run: |
+          import html
+          import json
+          import re
+          import urllib.request
+          from pathlib import Path
+
+          url = 'https://sungshu.pixnet.net/blog/posts/913347322592584128'
+          req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+          with urllib.request.urlopen(req, timeout=30) as r:
+              page = r.read().decode('utf-8', errors='replace')
+
+          marker = '2.7.4 完整繁體中文 JSON 翻譯'
+          pos = page.find(marker)
+          if pos < 0:
+              raise SystemExit('找不到 2.7.4 翻譯區段')
+
+          tail = html.unescape(page[pos:])
+          start = tail.find('{ "title"')
+          if start < 0:
+              start = tail.find('{\n"title"')
+          if start < 0:
+              raise SystemExit('找不到 2.7.4 translation.json 起點')
+
+          raw = tail[start:]
+          end_markers = ['</code>', '</pre>', '</textarea>']
+          ends = [raw.find(x) for x in end_markers if raw.find(x) >= 0]
+          if ends:
+              raw = raw[:min(ends)]
+
+          # Remove HTML tags/entities while preserving JSON text.
+          raw = re.sub(r'<[^>]+>', '', raw)
+          raw = html.unescape(raw).strip()
+          end = raw.rfind('}')
+          if end < 0:
+              raise SystemExit('找不到 JSON 結尾')
+          raw = raw[:end + 1]
+
+          data = json.loads(raw)
+          out = json.dumps(data, ensure_ascii=False, indent=2) + '\n'
+
+          target = Path('software/sftpgo/2.7.4')
+          target.mkdir(parents=True, exist_ok=True)
+          (target / 'translation.json').write_text(out, encoding='utf-8', newline='\n')
+          (target / 'README.md').write_text('''# SFTPGo 2.7.4｜繁體中文化\n\n本目錄保存 Blog 文章後續補充的 **SFTPGo 2.7.4 Windows 版**繁體中文翻譯。\n\n## 檔案\n\n- `translation.json`：從文章「2.7.4 完整繁體中文 JSON 翻譯」區段擷取的完整 JSON。\n\n## 部署位置\n\n```text\nC:\\ProgramData\\SFTPGo\\static\\locales\\en\\translation.json\n```\n\n此版本文章內容是 Windows 版 SFTPGo 2.7.4，與 2.7.0 Linux/Rocky Linux 版本分開保存。\n\n來源文章：sungshu 手札筆記本的 SFTPGo 2.7 安裝與中文化實戰文章。\n''', encoding='utf-8', newline='\n')
+
+      - name: Commit generated files and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add software/sftpgo/2.7.4/translation.json software/sftpgo/2.7.4/README.md .github/workflows/extract-sftpgo-274.yml
+          git rm .github/workflows/extract-sftpgo-274.yml
+          git commit -m 'Add SFTPGo 2.7.4 Traditional Chinese translation'
+          git push
